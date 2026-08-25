@@ -1,4 +1,4 @@
-# cwd-bookmarks
+# tool_cwd_bookmarks
 
 Standalone extraction from `workspace_archlinux_i3wm`.
 
