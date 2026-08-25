@@ -1,154 +1,113 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-DATA="$HOME/.local/share/cwd"
-FILE="${DATA}/db.data"
-FILE_DEFAULT="${DATA}/default.data"
+DATA="${CWD_DATA_DIR:-$HOME/.local/share/cwd}"
+FILE="$DATA/db.data"
+FILE_DEFAULT="$DATA/default.data"
+
+bootstrap() {
+    mkdir -p "$DATA"
+    touch "$FILE"
+}
 
 set_default() {
-    >&2 echo "Set current directory as default ...";
-    pwd > $FILE_DEFAULT
+    echo "Set current directory as default ..." >&2
+    pwd >"$FILE_DEFAULT"
 }
 
 get_default() {
-    cat $FILE_DEFAULT
+    cat "$FILE_DEFAULT"
 }
 
 add() {
-    >&2 echo "Adding current directory in the pool ...";
-    pwd >> $FILE
+    echo "Adding current directory in the pool ..." >&2
+    pwd >>"$FILE"
+}
+
+load_dirs() {
+    mapfile -t DIRS <"$FILE"
+}
+
+choose_dir_index() {
+    local height=30
+    local width=100
+    local choice_height=20
+    local backtitle="Select directory"
+    local title="Select directory"
+    local menu="Which directory do you want to enter?"
+    local dir_index=1
+    local options=()
+    local dir
+
+    load_dirs
+    if [[ ${#DIRS[@]} -eq 0 ]]; then
+        echo "No directory in the pool!" >&2
+        exit 2
+    fi
+
+    for dir in "${DIRS[@]}"; do
+        options+=("$dir_index" "$dir")
+        dir_index=$((dir_index + 1))
+        if [[ $dir_index -gt $choice_height ]]; then
+            break
+        fi
+    done
+
+    dialog \
+        --clear \
+        --backtitle "$backtitle" \
+        --title "$title" \
+        --menu "$menu" \
+        "$height" "$width" "$choice_height" \
+        "${options[@]}" 2>&1 >/dev/tty
 }
 
 remove() {
-    touch $FILE
+    local choice
+    choice="$(choose_dir_index)" || exit 2
 
-    DIRS=()
-    while read -r line
-    do
-        DIRS+=("$line");
-    done < $FILE
-
-    if [ ${#DIRS[@]} -eq 0 ]
-    then
-        >&2 echo "No directory in the pool!"
+    if [[ -z "$choice" ]]; then
+        echo "No directory selected" >&2
         exit 2
     fi
 
-    HEIGHT=30;
-    WIDTH=100;
-    CHOICE_HEIGHT=20;
-    BACKTITLE="Select directory";
-    TITLE="Select directory";
-    MENU="Which directory do you want to enter?";
-    DIR_INDEX=1;
-    OPTIONS=();
-
-    for dir in ${DIRS[@]}
-    do
-        OPTIONS+=("$DIR_INDEX" "$dir");
-        DIR_INDEX=$((DIR_INDEX + 1));
-        if [ $DIR_INDEX -gt $CHOICE_HEIGHT ]; then
-            break;
-        fi
-    done;
-
-    CHOICE=$(dialog \
-        --clear \
-        --backtitle "$BACKTITLE" \
-        --title "$TITLE" \
-        --menu "$MENU" \
-        $HEIGHT $WIDTH $CHOICE_HEIGHT \
-        "${OPTIONS[@]}" 2>&1 > /dev/tty
-    );
-
-    if [ -z "${CHOICE}" ]
-    then
-        >&2 echo "No directory selected"
-        exit 2
-    else
-        unset DIRS["$((CHOICE - 1))"]
-        echo -n > $FILE
-        for dir in ${DIRS[@]}
-        do
-            echo $dir > $FILE
-        done
-    fi
+    unset 'DIRS[choice - 1]'
+    printf '%s\n' "${DIRS[@]}" >"$FILE"
 }
 
 go_to() {
-    touch $FILE
+    local choice selected_dir
+    choice="$(choose_dir_index)" || exit 2
 
-    DIRS=()
-    while read -r line
-    do
-        DIRS+=("$line");
-    done < $FILE
-
-    if [ ${#DIRS[@]} -eq 0 ]
-    then
-        >&2 echo "No directory in the pool!"
+    if [[ -z "$choice" ]]; then
+        echo "No directory selected" >&2
         exit 2
     fi
 
-    HEIGHT=30;
-    WIDTH=100;
-    CHOICE_HEIGHT=20;
-    BACKTITLE="Select directory";
-    TITLE="Select directory";
-    MENU="Which directory do you want to enter?";
-    DIR_INDEX=1;
-    OPTIONS=();
-
-    for dir in ${DIRS[@]}
-    do
-        OPTIONS+=("$DIR_INDEX" "$dir");
-        DIR_INDEX=$((DIR_INDEX + 1));
-        if [ $DIR_INDEX -gt $CHOICE_HEIGHT ]; then
-            break;
-        fi
-    done;
-
-    CHOICE=$(dialog \
-        --clear \
-        --backtitle "$BACKTITLE" \
-        --title "$TITLE" \
-        --menu "$MENU" \
-        $HEIGHT $WIDTH $CHOICE_HEIGHT \
-        "${OPTIONS[@]}" 2>&1 > /dev/tty
-    );
-
-    if [ -z "${CHOICE}" ]
-    then
-        >&2 echo "No directory selected"
-        exit 2
-    else
-        SELECTED_DIR=${DIRS["$((CHOICE - 1))"]}
-        echo $SELECTED_DIR
-    fi
+    selected_dir="${DIRS[choice - 1]}"
+    printf '%s\n' "$selected_dir"
 }
 
 main() {
-    case $1 in
+    bootstrap
+
+    case "${1:-}" in
         add)
             add
-            exit 1
             ;;
         remove)
             remove
-            exit 1
             ;;
         set-default)
             set_default
-            exit 1
             ;;
         get-default)
             get_default
-            exit 1
             ;;
         *)
             go_to
-            exit 0
             ;;
     esac
 }
 
-main $@
+main "$@"

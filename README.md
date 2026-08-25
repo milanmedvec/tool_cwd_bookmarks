@@ -1,11 +1,18 @@
 # tool_cwd_bookmarks
 
-Standalone extraction from `workspace_archlinux_i3wm`.
+Shell directory bookmark helper for saving and selecting frequently used working directories.
 
-## Files
+## Commands
 
-- `bin/cwd` from workspace `bin/cwd`
-- `shell/cwd.sh` from workspace `conf/.bash/cwd.sh`
+- `cwd` - manage/select saved directories
+- `shell/cwd.sh` - bash aliases/functions for integration
+
+## Dependencies
+
+- bash
+- dialog
+- fzf (for cdi shell helper)
+- find/coreutils
 
 ## Install
 
@@ -13,5 +20,24 @@ Standalone extraction from `workspace_archlinux_i3wm`.
 ./install.sh
 ```
 
-By default commands from `bin/` are installed to `$HOME/.local/bin`.
-Override with `PREFIX=/path ./install.sh`.
+Install to a custom prefix:
+
+```bash
+PREFIX="$HOME/.local" ./install.sh
+```
+
+## Usage
+
+```bash
+cwd add
+cwd
+source ~/.local/share/tool_cwd_bookmarks/shell/cwd.sh
+```
+
+## Configuration
+
+- Data is stored under `$HOME/.local/share/cwd`.
+
+## Notes
+
+These scripts were extracted from a personal Arch Linux + i3 workspace. Review dependencies and paths before using them on another machine.

@@ -1,33 +1,30 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 alias cdpush='cwd set-default'
-alias cdpop='cd `cwd get-default`'
+alias cdpop='cd "$(cwd get-default)"'
 
 cdq() {
-    RESULT=$(cwd)
+    local result
+    result="$(cwd)" || return
     clear
-    if [[ $? -eq 0 ]]
-    then
-        cd $RESULT
-    fi
+    cd "$result" || return
 }
 
 cdi() {
-  local dir
+    local dir
 
-  while true; do
-    clear
+    while true; do
+        clear
 
-    dir="$(
-      {
-        echo ..
-        find . -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort
-      } | fzf --prompt="$PWD > "
-    )"
+        dir="$(
+            {
+                echo ..
+                find . -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort
+            } | fzf --prompt="$PWD > "
+        )" || break
 
-    [ -z "$dir" ] && break
+        [[ -z "$dir" ]] && break
 
-    cd "$dir" || break
-  done
+        cd "$dir" || break
+    done
 }
-
