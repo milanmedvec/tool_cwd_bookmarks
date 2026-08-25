@@ -62,29 +62,42 @@ choose_dir_index() {
         "${options[@]}" 2>&1 >/dev/tty
 }
 
-remove() {
-    local choice
-    choice="$(choose_dir_index)" || exit 2
+validate_choice() {
+    local choice="$1"
+    local count="$2"
 
     if [[ -z "$choice" ]]; then
         echo "No directory selected" >&2
         exit 2
     fi
 
-    unset 'DIRS[choice - 1]'
+    if ! [[ "$choice" =~ ^[0-9]+$ ]] || ((choice < 1 || choice > count)); then
+        echo "Invalid directory selection: $choice" >&2
+        exit 2
+    fi
+}
+
+remove() {
+    local choice index
+    choice="$(choose_dir_index)" || exit 2
+
+    load_dirs
+    validate_choice "$choice" "${#DIRS[@]}"
+    index=$((choice - 1))
+
+    unset "DIRS[$index]"
     printf '%s\n' "${DIRS[@]}" >"$FILE"
 }
 
 go_to() {
-    local choice selected_dir
+    local choice index selected_dir
     choice="$(choose_dir_index)" || exit 2
 
-    if [[ -z "$choice" ]]; then
-        echo "No directory selected" >&2
-        exit 2
-    fi
+    load_dirs
+    validate_choice "$choice" "${#DIRS[@]}"
+    index=$((choice - 1))
 
-    selected_dir="${DIRS[choice - 1]}"
+    selected_dir="${DIRS[$index]}"
     printf '%s\n' "$selected_dir"
 }
 
